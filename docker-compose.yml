@@ -1,115 +1,112 @@
 services:
   spark-master:
-    image: bitnami/spark:3.5.0
+    image: bitnami/spark:${SPARK_VERSION}
     container_name: spark-master
     environment:
       - SPARK_MODE=master
       - USER=spark  
     ports:
+      - "1234:4040"
       - "7077:7077"
       - "8080:8080"
     volumes:
-      # - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf
       - ./job/:/job
       - ./jars/:/jars
       - ./checkpoints:/checkpoints
-    # cpus: 3             
     mem_limit: 3g
-    memswap_limit: 3g
+    memswap_limit: 5g
     networks:
       - spark-net
       
   spark-worker-1:
-    image: bitnami/spark:3.5.0
+    image: bitnami/spark:${SPARK_VERSION}
     container_name: spark-worker-1
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      # - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_CORES=2
       - USER=spark  
-      - SPARK_WORKER_MEMORY=1g
+      - SPARK_WORKER_MEMORY=2g
     depends_on:
       - spark-master
-    # cpus: 1    
     mem_limit: 2g
-    memswap_limit: 3g
+    memswap_limit: 4g
     networks:
       - spark-net
 
   spark-worker-2:
-    image: bitnami/spark:3.5.0
+    image: bitnami/spark:${SPARK_VERSION}
     container_name: spark-worker-2
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      # - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_CORES=2
       - USER=spark  
-      - SPARK_WORKER_MEMORY=1g
+      - SPARK_WORKER_MEMORY=2g
     depends_on:
       - spark-master
     mem_limit: 2g
-    memswap_limit: 3g
+    memswap_limit: 4g
     networks:
       - spark-net
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+  broker01:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION}
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeperData:/var/lib/zookeeper/data
-    # cpus: 0.5              # Giới hạn tối đa 0.5 CPU
-    mem_limit: 1g
-    memswap_limit: 2g
-    networks:
-      - spark-net
-
-  kafka-1:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,CLIENT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://broker01:9092,CONTROLLER://broker01:9093,CLIENT://broker01:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker01:9092,CLIENT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker01:9093,2@broker02:9093'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_JMX_PORT: 9090
+      KAFKA_LOG_DIRS: /var/log/kafka
       KAFKA_NUM_PARTITIONS: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CONFLUENT_METRICS_ENABLE: 'false'
+    ports:
+      - 9092:9094
     restart: always
     volumes:
       - kafkaData1:/var/lib/kafka/data
-    # cpus: 0.5              # Giới hạn tối đa 0.5 CPU
     mem_limit: 2g
-    memswap_limit: 3g
+    memswap_limit: 4g
     networks:
       - spark-net
 
-  kafka-2:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
-    ports:
-      - "9093:9093"
+  broker02:
+    image: confluentinc/cp-kafka:${KAFKA_VERSION}
     environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:29093,PLAINTEXT_HOST://localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,CLIENT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://broker02:9092,CONTROLLER://broker02:9093,CLIENT://broker02:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker02:9092,CLIENT://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker01:9093,2@broker02:9093'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_JMX_PORT: 9090
+      KAFKA_LOG_DIRS: /var/log/kafka
       KAFKA_NUM_PARTITIONS: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CONFLUENT_METRICS_ENABLE: 'false'
+    ports:
+      - 9094:9094
     restart: always
     volumes:
       - kafkaData2:/var/lib/kafka/data
-    # cpus: 0.5              # Giới hạn tối đa 0.5 CPU
     mem_limit: 2g
-    memswap_limit: 3g
+    memswap_limit: 4g
     networks:
       - spark-net
 
@@ -120,23 +117,21 @@ services:
     ports:
       - "8124:8123"
     environment:
-      - CLICKHOUSE_USER=thinh
-      - CLICKHOUSE_PASSWORD=26122004
-    # cpus: 3              
-    mem_limit: 3g
-    memswap_limit: 5g
+      - CLICKHOUSE_USER=${CLICKHOUSE_USERNAME}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+    mem_limit: 4g
+    memswap_limit: 6g
     networks:
       - spark-net
 
 
-volumes:  # Need to use when use named volume
-  # job:
-  zookeeperData:
+volumes:  
   kafkaData1:
   kafkaData2:
-  kafkaData3:
   clickhouse_data:
 
 networks:
   spark-net:
     external: true
+
+

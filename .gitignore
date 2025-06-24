@@ -1,0 +1,15 @@
+checkpoints
+job/test2.py
+pyspark_venv
+.env
+click_stream.csv
+customer.csv
+data.json
+preprocessing_data.ipynb
+product.csv
+test_batch.ipynb 
+test_stream.ipynb 
+transactions.csv 
+final_clickstream
+
+
