@@ -107,7 +107,7 @@ CREATE TABLE <your_clickhouse_table></your_clickhouse_table>
 ENGINE = MergeTree
 ORDER BY (event_name, event_time);
 ```
-5. Produce data to Kafka (make sure to stand at `realtime_clickstream_analytics_system` folder and activate virtual environment with installed packages) by running `produce_to_kafka.py` file:
+5. Produce data to Kafka (make sure you are in the `realtime_clickstream_analytics_system` folder and that the virtual environment with the required packages is activated) by running the `produce_to_kafka.py` file:
 ```bash
 python produce_to_kafka.py
 ```
